@@ -99,7 +99,7 @@ ui <- fluidPage(
              plotOutput("profit_plot"),
       ),
       column(4,
-             verbatimTextOutput("nash_output")
+             plotOutput("nash_plot")
              #plotlyOutput("profit_opt_line")
              )
     ),
@@ -275,7 +275,7 @@ server <- function(input, output) {
     if(is.null(userCleanData())){
       return(NULL)
     }
-    nash(data = userCleanData(), type = userType(), var1 = userVar1(), fix1 = userFix1(), var2 = userVar2(), fix2 = userFix2(), population = userPop(), sample = userSample())
+    nash3D(data = userCleanData(), type = userType(), var1 = userVar1(), fix1 = userFix1(), var2 = userVar2(), fix2 = userFix2(), population = userPop(), sample = userSample())
   })
 
   output$nash_output <- renderPrint({
@@ -285,6 +285,12 @@ server <- function(input, output) {
     competitionSolve(data = userCleanData(), type = userType(), first_or_second = 1, variable1 = userVar1(), fixed1 = userFix1(), variable2 = userVar2(), fixed2 = userFix2(), population = userPop(), sample = userSample())
   })
 
+  output$nash_plot <- renderPlot({
+    if(is.null(userCleanData())){
+      return(NULL)
+    }
+    nash2D(data = userCleanData(), type = userType(), var1 = userVar1(), fix1 = userFix1(), var2 = userVar2(), fix2 = userFix2(), population = userPop(), sample = userSample())
+  })
 }
 
 # Run the application
