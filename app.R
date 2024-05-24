@@ -17,110 +17,92 @@ library(DT)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+  # Application title
+  titlePanel("Duopoly"),
+  # Sidebar layout with input and output definitions ----
+  sidebarLayout(
+    # Sidebar panel for inputs ----
+    #column(4,
+    sidebarPanel(
+      # Input: Select a file ----
+      fileInput("file1", "Choose CSV File",
+                multiple = FALSE,
+                accept = c("text/csv",
+                           "text/comma-separated-values,text/plain",
+                           ".csv")),
+      # Input: Checkbox if file has header ----
+      checkboxInput("header", "Header", TRUE),
 
-    # Application title
-    titlePanel("Duopoly"),
-
-    # Sidebar layout with input and output definitions ----
-    #fluidRow(
-    sidebarLayout(
-      # Sidebar panel for inputs ----
-      #column(4,
-      sidebarPanel(
-
-        # Input: Select a file ----
-        fileInput("file1", "Choose CSV File",
-                  multiple = FALSE,
-                  accept = c("text/csv",
-                             "text/comma-separated-values,text/plain",
-                             ".csv")),
-
-        # Input: Checkbox if file has header ----
-        checkboxInput("header", "Header", TRUE),
-
-        # Input: Select separator ----
-        radioButtons("sep", "Separator",
-                     choices = c(Comma = ",",
-                                 Semicolon = ";",
-                                 Tab = "\t"),
-                     selected = ","),
-
-        # Input: Select quotes ----
-        radioButtons("quote", "Quote",
-                     choices = c(None = "",
-                                 "Double Quote" = '"',
-                                 "Single Quote" = "'"),
-                     selected = '"'),
+      # Input: Select separator ----
+      radioButtons("sep", "Separator",
+                   choices = c(Comma = ",",
+                               Semicolon = ";",
+                               Tab = "\t"),
+                   selected = ","),
+      # Input: Select quotes ----
+      radioButtons("quote", "Quote",
+                   choices = c(None = "",
+                               "Double Quote" = '"',
+                               "Single Quote" = "'"),
+                   selected = '"'),
       ),
-      mainPanel(
-        dataTableOutput("contents")
+    mainPanel(
+      dataTableOutput("contents")
       )
     ),
-    fluidRow(
-      column(4,
-             wellPanel(
-               selectInput("wtpProd1", "Product 1 Willingness to Pay Column", choices = c("FILE NEEDS TO BE UPLOADED")),
-               selectInput("wtpProd2", "Product 2 Willingness to Pay Column", choices = c("FILE NEEDS TO BE UPLOADED")),
-               selectInput("regressType", "Regression Transformation", choices = c("Linear", "Exponential")),
-               numericInput("pop", "Customer Population Size", min = 0, value = 1000),
-               sliderInput("cPrice", "Competitor Price", min = 0, max = 10, value = 3, step = .25),
-            )
-      ),
-      column(4,
-             #plotlyOutput("demand3D_plot")
-             plotOutput("demand_plot")
-      ),
-      column(4,
-             verbatimTextOutput("lm_summary")
-             #plotlyOutput("demand3D_plot")
-             )
-    ),
-    #fluidRow(
-    #  column(4,
-    #         wellPanel(
-    #           sliderInput("cPrice", "Competitor Price", min = 0, max = 10, value = 3, step = .25),
-    #         )
-    #  ),
-    #  column(8,
-    #         plotOutput("demand_plot")
-    #         )
-    #),
-    fluidRow(
-      column(4,
-             wellPanel(
-               sliderInput("price", "Price", min = 0, max = 10, value = 3, step = .25),
-               numericInput("var1", "Variable Cost of Product 1", min = 0, value = 10),
-               numericInput("fix1", "Fixed Cost (Overhead) of Product 1", min = 0, value = 1000),
-               numericInput("var2", "Variable Cost of Product 2", min = 0, value = 10),
-               numericInput("fix2", "Fixed Cost (Overhead) of Product 2", min = 0, value = 1000)
-             )
-      ),
-      column(4,
-             plotOutput("profit_plot"),
-      ),
-      column(4,
-             plotOutput("nash_plot")
-             #plotlyOutput("profit_opt_line")
-             )
-    ),
-    #fluidRow(
-    #  column(4,
-    #         wellPanel(
-    #           numericInput("var2", "Variable Cost of Product 1", min = 0, value = 10),
-    #           numericInput("fix2", "Fixed Cost (Overhead) of Product 1", min = 0, value = 1000)
-    #         )
-    #  ),
-    #  column(4,
-    #         #plotlyOutput("nash_plot")
-    #  )
-    #),
 
-    #fluidRow(
-    #  column(12,
-             #verbatimTextOutput("nash_output")
-    #         )
-    #)
+  titlePanel("Demand Estimation"),
+  fluidRow(
+    column(4,
+           wellPanel(
+             column(6, selectInput("wtpProd1", "Product 1 WTP Column", choices = c(""))),
+             column(6, selectInput("wtpProd2", "Product 2 WTP Column", choices = c(""))),
+             selectInput("regressType", "Regression Transformation", choices = c("Linear", "Exponential")),
+             numericInput("pop", "Customer Population Size", min = 0, value = 1000)
+             ),
+           wellPanel(
+             sliderInput("cPrice", "Competitor Price", min = 0, max = 10, value = 3, step = .25),
+             sliderInput("price", "Price", min = 0, max = 10, value = 3, step = .25)
+             )
+           ),
+    column(8,
+           tabsetPanel(
+             tabPanel("Simple 2D",
+                      column(6, plotOutput("demand_plot")),
+                      ),
+             tabPanel("Advanced 3D",
+                      column(6, plotlyOutput("demand3D_plot")),
+                      )
+             ),
+           column(6, verbatimTextOutput("lm_summary"))
+           )
+    ),
+
+  fluidRow(
+    column(4,
+           wellPanel(
+             column(6, numericInput("var1", "Variable Cost of Product 1", min = 0, value = 10)),
+             column(6, numericInput("fix1", "Fixed Cost of Product 1", min = 0, value = 1000)),
+             column(6, numericInput("var2", "Variable Cost of Product 2", min = 0, value = 10)),
+             column(6, numericInput("fix2", "Fixed Cost of Product 2", min = 0, value = 1000)),
+             textInput("sampler", "", value = "")
+             )
+           ),
+    column(8,
+           tabsetPanel(
+             tabPanel("Simple 2D",
+                      column(6, plotOutput("profit_plot")),
+                      column(6, plotOutput("nash_plot2D"))
+                      ),
+             tabPanel("Advanced 3D",
+                      column(6, plotlyOutput("profit_opt_line")),
+                      column(6, plotlyOutput("nash_plot3D"))
+                      )
+             )
+           )
+    )
 )
+
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
@@ -141,7 +123,7 @@ server <- function(input, output) {
     df
   })
 
-  output$contents <- renderDataTable(userData(), options = list(pageLength = 5))
+  output$contents <- renderDataTable(userData(), options = list(pageLength = 8))
 
   observeEvent(input$file1, {
     updateSelectInput(inputId = "wtpProd1", choices = names(userData()))
@@ -271,7 +253,7 @@ server <- function(input, output) {
     updateNumericInput(inputId = "fix2", label = paste(input$wtpProd2, "Fixed Cost"),  min = 0, value = roundLog(median(userWTP2()) * userPop() * .1))
   })
 
-  output$nash_plot <- renderPlotly({
+  output$nash_plot3D <- renderPlotly({
     if(is.null(userCleanData())){
       return(NULL)
     }
@@ -285,7 +267,7 @@ server <- function(input, output) {
     competitionSolve(data = userCleanData(), type = userType(), first_or_second = 1, variable1 = userVar1(), fixed1 = userFix1(), variable2 = userVar2(), fixed2 = userFix2(), population = userPop(), sample = userSample())
   })
 
-  output$nash_plot <- renderPlot({
+  output$nash_plot2D <- renderPlot({
     if(is.null(userCleanData())){
       return(NULL)
     }
