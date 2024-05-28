@@ -40,7 +40,7 @@ ui <- fluidPage(
                                Tab = "\t"),
                    selected = ","),
       # Input: Select quotes ----
-      radioButtons("quote", "Quote",
+      radioButtons("quote", "Quoxte",
                    choices = c(None = "",
                                "Double Quote" = '"',
                                "Single Quote" = "'"),
@@ -61,46 +61,118 @@ ui <- fluidPage(
              numericInput("pop", "Customer Population Size", min = 0, value = 1000)
              ),
            wellPanel(
-             sliderInput("cPrice", "Competitor Price", min = 0, max = 10, value = 3, step = .25),
-             sliderInput("price", "Price", min = 0, max = 10, value = 3, step = .25)
-             )
+             sliderInput("cPrice", "Competitor Price", min = 0, max = 10, value = 3, step = .25)
+           )
            ),
     column(8,
+           column(6,
            tabsetPanel(
-             tabPanel("Simple 2D",
-                      column(6, plotOutput("demand_plot")),
+             tabPanel("Demand",
+                      plotOutput("demand_plot"),
                       ),
              tabPanel("Advanced 3D",
-                      column(6, plotlyOutput("demand3D_plot")),
+                      plotlyOutput("demand3D_plot"),
                       )
-             ),
-           column(6, verbatimTextOutput("lm_summary"))
+             )
+           ),
+           column(6,
+                  tabsetPanel(
+                    tabPanel("Summary",
+                             verbatimTextOutput("lm_summary")
+                    ),
+                    tabPanel("Interpretations",  align = "center",
+                             br(), br(), br(),
+                             uiOutput("rSq_text"),
+                             div(style = "font-size: 14px;",
+                                 uiOutput("rSq_interpretation")
+                             ),
+                            # br(), br(), br(),
+                            # uiOutput("demand_math_formula"),
+                            # div(style = "font-size: 14px;",
+                            #     uiOutput("intercept_interpretation")
+                            # ),
+                            # div(style = "font-size: 14px;",
+                            #     uiOutput("slope_interpretation")
+                            # )
+                    )
+
+                  )
+                  )
            )
     ),
 
   fluidRow(
     column(4,
            wellPanel(
-             column(6, numericInput("var1", "Variable Cost of Product 1", min = 0, value = 10)),
-             column(6, numericInput("fix1", "Fixed Cost of Product 1", min = 0, value = 1000)),
-             column(6, numericInput("var2", "Variable Cost of Product 2", min = 0, value = 10)),
-             column(6, numericInput("fix2", "Fixed Cost of Product 2", min = 0, value = 1000)),
-             textInput("sampler", "", value = "")
-             )
+             sliderInput("price", "Price", min = 0, max = 10, value = 3, step = .25)
+             ),
+           column(6,
+                  wellPanel(
+                    numericInput("var1", "Variable Cost of Product 1", min = 0, value = 10),
+                    numericInput("fix1", "Fixed Cost of Product 1", min = 0, value = 1000)
+                  )
            ),
-    column(8,
+           column(6,
+                  wellPanel(
+                    numericInput("var2", "Variable Cost of Product 2", min = 0, value = 10),
+                    numericInput("fix2", "Fixed Cost of Product 2", min = 0, value = 1000)
+                    )
+                  )
+           ),
+    column(4,
            tabsetPanel(
-             tabPanel("Simple 2D",
-                      column(6, plotOutput("profit_plot")),
-                      column(6, plotOutput("nash_plot2D"))
+             tabPanel("Profit",
+                      plotOutput("profit_plot")
                       ),
              tabPanel("Advanced 3D",
-                      column(6, plotlyOutput("profit_opt_line")),
-                      column(6, plotlyOutput("nash_plot3D"))
+                      plotlyOutput("profit_opt_line")
+                      )
+             )
+    ),
+    column(4,
+           tabsetPanel(
+             tabPanel("optimized profit", align = "center",
+                      br(), br(),
+                      div(style = "font-size: 20px;",
+                          uiOutput("opt_price")
+                      ),
+                      br(),
+                      div(style = "font-size: 20px;",
+                          uiOutput("opt_profit")
+                          )
                       )
              )
            )
-    )
+    ),
+
+  fluidRow(
+    column(4,
+           ),
+    column(4,
+           tabsetPanel(
+             tabPanel("Reaction Functions",
+                      plotOutput("nash_plot2D")
+                      ),
+             tabPanel("Advanced 3D",
+                     plotlyOutput("nash_plot3D")
+                     )
+             )
+           ),
+    column(4,
+           tabsetPanel(
+             tabPanel("Nash Equilibrium", align = "center",
+                      br(), br(),
+                      div(style = "font-size: 20px;",
+                          uiOutput("nash_prod1")
+                      ),
+                      br(),
+                      div(style = "font-size: 20px;",
+                          uiOutput("nash_prod2")
+                          )
+                      )
+             )
+           )
+  )
 )
 
 
@@ -195,7 +267,7 @@ server <- function(input, output) {
     if(is.null(userCleanData())){
       return(NULL)
     }
-    demandPlotDuo(competitor_price = userCPrice(), data = userCleanData(), type = userType(), first_or_second = 1, population = userPop(), sample = userSample())
+    demandPlotDuo(competitor_price = userCPrice(), price = userPrice(), data = userCleanData(), type = userType(), first_or_second = 1, population = userPop(), sample = userSample())
   })
 
   output$lm_summary <- renderPrint({
@@ -205,6 +277,15 @@ server <- function(input, output) {
     demandSummaryDuo(data = userCleanData(), type = userType(), first_or_second = 1)
   })
 
+  output$rSq_text  <- renderUI({
+    if(is.null(userCleanData())){
+      return(NULL)
+    }
+    rSq <- round(rSquaredDuo(data = userCleanData(), userType(), 1), 3)
+    withMathJax(
+      helpText(paste0("$$\\Large{R^2 \\ = \\ ", rSq, "}$$"))
+    )
+  })
 
   userPrice <- reactive(input$price)
   userVar1 <- reactive(input$var1)
@@ -231,14 +312,48 @@ server <- function(input, output) {
     if(is.null(userCleanData())){
       return(NULL)
     }
-    profitPlotDuo(price1 = userPrice(), price2 = userCPrice(), data = userCleanData(), type = userType(), first_or_second = 1,  var = userVar1(), fix = userFix1(), population = userPop(), sample = userSample())
+    profitPlotDuo(price1 = userPrice(), price2 = userCPrice(),
+                  data = userCleanData(), type = userType(), first_or_second = 1,
+                  var = userVar1(), fix = userFix1(),
+                  population = userPop(), sample = userSample())
   })
 
   output$profit_opt_line <- renderPlotly({
     if(is.null(userCleanData())){
       return(NULL)
     }
-    profitOptLine(data = userCleanData(), type = userType(), first_or_second = 1, var = userVar1(), fix = userFix1(), population = userPop(), sample = userSample())
+    profitOptLine(data = userCleanData(), type = userType(),
+                  first_or_second = 1, var = userVar1(), fix = userFix1(),
+                  population = userPop(), sample = userSample())
+  })
+
+  output$opt_price <- renderUI({
+    if(is.null(userCleanData())){
+      return(NULL)
+    }
+
+    price <- optimizeProfitDuo(competitorPrice = userCPrice(), data = userCleanData(),
+                               type = userType(), first_or_second = 1,
+                               var = userVar1(), fix = userFix1(),
+                               population = userPop(), sample = userSample())[[1]]
+
+    show_Price <- paste0("<b>Price</b>: $", conNum_short(round(price, 2)))
+
+    HTML(show_Price)
+  })
+
+  output$opt_profit <- renderUI({
+    if(is.null(userCleanData())){
+      return(NULL)
+    }
+    profit <- optimizeProfitDuo(competitorPrice = userCPrice(), data = userCleanData(),
+                                type = userType(), first_or_second = 1,
+                                var = userVar1(), fix = userFix1(),
+                                population = userPop(), sample = userSample())[[2]]
+
+    show_Profit <- paste0("<b>Optimal Profit</b> $", format(round(profit, 2), big.mark = ","))
+
+    HTML(show_Profit)
   })
 
   userVar2 <- reactive(input$var2)
@@ -257,23 +372,88 @@ server <- function(input, output) {
     if(is.null(userCleanData())){
       return(NULL)
     }
-    nash3D(data = userCleanData(), type = userType(), var1 = userVar1(), fix1 = userFix1(), var2 = userVar2(), fix2 = userFix2(), population = userPop(), sample = userSample())
+    nash3D(data = userCleanData(), type = userType(),
+           var1 = userVar1(), fix1 = userFix1(),
+           var2 = userVar2(), fix2 = userFix2(),
+           population = userPop(), sample = userSample())
   })
 
   output$nash_output <- renderPrint({
     if(is.null(userCleanData())){
       return(NULL)
     }
-    competitionSolve(data = userCleanData(), type = userType(), first_or_second = 1, variable1 = userVar1(), fixed1 = userFix1(), variable2 = userVar2(), fixed2 = userFix2(), population = userPop(), sample = userSample())
+    competitionSolve(data = userCleanData(), type = userType(), first_or_second = 1,
+                     variable1 = userVar1(), fixed1 = userFix1(),
+                     variable2 = userVar2(), fixed2 = userFix2(),
+                     population = userPop(), sample = userSample())
   })
 
   output$nash_plot2D <- renderPlot({
     if(is.null(userCleanData())){
       return(NULL)
     }
-    nash2D(data = userCleanData(), type = userType(), var1 = userVar1(), fix1 = userFix1(), var2 = userVar2(), fix2 = userFix2(), population = userPop(), sample = userSample())
+    nash2D(data = userCleanData(), type = userType(),
+           var1 = userVar1(), fix1 = userFix1(),
+           var2 = userVar2(), fix2 = userFix2(),
+           population = userPop(), sample = userSample())
+  })
+
+  #nashPoints <- reactive({
+  #  if(is.null(userCleanData())){
+  #    return(NULL)
+  #  }
+  #  competitionSolve(data = userCleanData(), type = userType(), first_or_second = 1,
+  #                   variable1 = userVar1(), fixed1 = userFix1(),
+  #                   variable2 = userVar2(), fixed2 = userFix2(),
+  #                   population = userPop(), sample = userSample())
+
+#  })
+
+  output$nash_prod1 <- renderUI({
+    if(is.null(userCleanData())){
+      return(NULL)
+    }
+
+    cols <- whichColumns(1, userCleanData())
+
+    nashPoints <- binary_Optim(data = userCleanData(), type = userType(),
+                               cols[[1]], cols[[2]], cols[[3]], cols[[4]],
+                               var1 = userVar1(), fix1 = userFix1(),
+                               var2 = userVar2(), fix2 = userFix2(),
+                               population = userPop(), sample = userSample())
+
+    price <- nashPoints[[1]]
+    profit <- fPi_m(userCleanData(), userType(), cols[[1]], cols[[2]], cols[[3]], userVar1(), userFix1(), userPop(), userSample())(price, nashPoints[[2]])
+
+    show_Price<- paste0("<b>", cols[[1]], "</b> Price: $", conNum_short(round(price, 2)), ", <b>Profit</b>: $", format(round(profit, 2), big.mark = ","))
+    #show_Profit <- paste0("<b>Profit</b>: $", format(round(profit, 2), big.mark = ","))
+
+    HTML(show_Price)
+  })
+
+  output$nash_prod2 <- renderUI({
+    if(is.null(userCleanData())){
+      return(NULL)
+    }
+    cols <- whichColumns(2, userCleanData())
+
+    nashPoints <- binary_Optim(data = userCleanData(), type = userType(),
+                               cols[[1]], cols[[2]], cols[[3]], cols[[4]],
+                               var1 = userVar1(), fix1 = userFix1(),
+                               var2 = userVar2(), fix2 = userFix2(),
+                               population = userPop(), sample = userSample())
+
+    price <- nashPoints[[1]]
+    profit <- fPi_m(userCleanData(), userType(), cols[[1]], cols[[2]], cols[[3]], userVar2(), userFix2(), userPop(), userSample())(price, nashPoints[[2]])
+
+    show_Price <- paste0("<b>", cols[[1]], "</b> Price: $", conNum_short(round(price, 2)), ", <b>Profit</b>: $", format(round(profit, 2), big.mark = ","))
+    #show_Profit <- paste0("<b>Profit</b>: $", format(round(profit, 2), big.mark = ","))
+
+    HTML(show_Price)
   })
 }
+
+
 
 # Run the application
 shinyApp(ui = ui, server = server)
@@ -285,5 +465,7 @@ shinyApp(ui = ui, server = server)
 # variable should be 40% of median price?
 # fixed should be median price
 
-
-
+#library(tidyverse)
+#cp <- read_csv("~/Desktop/CupcakesTest.csv")
+#cpM <- quantityCreation_duo(cp, "cupcakes", "donuts")
+#rSquaredDuo(cpM, "Exponential", 1)
